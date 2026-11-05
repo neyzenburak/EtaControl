@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 DENIED_SUFFIXES={'.zip','.db','.sqlite','.sqlite3','.xls','.xlsx','.xlsm','.csv','.mac','.png','.jpg','.jpeg','.pdf','.pyc'}
@@ -31,6 +32,7 @@ def check(paths,terms=()):
 
 
 if __name__=='__main__':
+    sys.stdout.reconfigure(encoding='utf-8')
     parser=argparse.ArgumentParser();parser.add_argument('--private-terms',type=Path);args=parser.parse_args()
     terms=json.loads(args.private_terms.read_text(encoding='utf-8')) if args.private_terms else []
     output=subprocess.run(['git','ls-files','-z'],cwd=ROOT,check=True,capture_output=True).stdout

@@ -2,6 +2,9 @@ name: Doğrulama
 on: [push, pull_request]
 permissions:
   contents: read
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
 jobs:
   ortak-altyapi:
     name: Ortak altyapı testleri
