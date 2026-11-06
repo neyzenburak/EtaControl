@@ -29,7 +29,7 @@ function Get-EtaPython([string]$candidate, [string[]]$prefix = @()) {
     try {
         $etaInfo = New-Object System.Diagnostics.ProcessStartInfo
         $etaInfo.FileName = $candidate
-        $etaInfo.Arguments = (($prefix -join ' ') + ' -I -c "import sys,json;print(json.dumps(dict(executable=sys.executable,version=sys.version.split()[0],supported=(3,10)<=sys.version_info[:2]<(3,14))))"').Trim()
+        $etaInfo.Arguments = (($prefix -join ' ') + ' -I -c "import sys,json;print(json.dumps(dict(executable=sys.executable,version=sys.version.split()[0],supported=(3,10)<=sys.version_info[:2]<(3,15))))"').Trim()
         $etaInfo.UseShellExecute = $false
         $etaInfo.CreateNoWindow = $true
         $etaInfo.RedirectStandardOutput = $true
@@ -45,7 +45,7 @@ function Get-EtaPython([string]$candidate, [string[]]$prefix = @()) {
             if (-not $prefix.Count) { return $candidate }
             return $etaDetails.executable.Trim()
         }
-        Add-EtaPythonDiagnostic $candidate ('Desteklenmeyen surum: ' + $etaDetails.version + '. Gerekli: 3.10-3.13')
+        Add-EtaPythonDiagnostic $candidate ('Desteklenmeyen surum: ' + $etaDetails.version + '. Gerekli: 3.10-3.14')
     } catch { Add-EtaPythonDiagnostic $candidate $_.Exception.Message }
     finally { if ($etaProbe) { $etaProbe.Dispose() } }
     return $null
@@ -61,7 +61,7 @@ function Find-EtaPython([string]$explicitPath) {
         if ($etaFound) { return $etaFound }
     }
     foreach ($etaLauncher in @(Get-Command py.exe -All -CommandType Application -ErrorAction SilentlyContinue)) {
-        foreach ($etaVersion in @('-3.12', '-3.13', '-3.11', '-3.10')) {
+        foreach ($etaVersion in @('-3.12', '-3.13', '-3.14', '-3.11', '-3.10')) {
             $etaFound = Get-EtaPython $etaLauncher.Source @($etaVersion)
             if ($etaFound) { return $etaFound }
         }
@@ -111,7 +111,7 @@ if (-not $etaPython) {
     $etaPython = Find-EtaPython $PythonExe
     if (-not $etaPython) {
         $script:etaPythonDiagnostics | ForEach-Object { Write-Host $_ }
-        throw 'Python 3.10-3.13 bulunamadi. Tani icin KURULUM.ps1 -PythonTani calistirin. Python 3.14 ve ustu bu surumde desteklenmiyor.'
+        throw 'Python 3.10-3.14 bulunamadi. Tani icin KURULUM.ps1 -PythonTani calistirin. Python 3.15 ve ustu bu surumde desteklenmiyor.'
     }
     if (Test-Path -LiteralPath $etaVenvRoot) {
         $etaResolvedVenv = [System.IO.Path]::GetFullPath($etaVenvRoot)
