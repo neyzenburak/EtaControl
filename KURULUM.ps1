@@ -1,15 +1,21 @@
-param([switch]$NoStart, [string]$PythonExe = '')
+param([switch]$NoStart, [string]$PythonExe = '', [switch]$PythonTani)
 $ErrorActionPreference = 'Stop'
 $etaProjectRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
 Set-Location -LiteralPath $etaProjectRoot
-if (-not (Test-Path -LiteralPath (Join-Path $etaProjectRoot 'kurum\EtaControl_KurumPaketi.zip'))) { throw 'Kurum paketi eksik. EtaControl_KurumPaketi.zip dosyasini kurum klasorune koyun.' }
+$script:etaPythonDiagnostics = @()
+
+function Add-EtaPythonDiagnostic([string]$candidate, [string]$message) {
+    $etaMessage = ($message -replace '\s+', ' ').Trim()
+    if ($etaMessage.Length -gt 400) { $etaMessage = $etaMessage.Substring(0,400) }
+    $script:etaPythonDiagnostics += ($candidate + ' -> ' + $etaMessage)
+}
 
 function Get-EtaStorePackages {
     if ($null -eq $script:etaStorePackages) {
         $script:etaStorePackages = @()
         if (Get-Command Get-AppxPackage -ErrorAction SilentlyContinue) {
             try { $script:etaStorePackages = @(Get-AppxPackage -Name 'PythonSoftwareFoundation.Python*' -ErrorAction Stop) }
-            catch { }
+            catch { Add-EtaPythonDiagnostic 'Store paket listesi' $_.Exception.Message }
         }
     }
     return $script:etaStorePackages
@@ -17,17 +23,13 @@ function Get-EtaStorePackages {
 
 function Get-EtaPython([string]$candidate, [string[]]$prefix = @()) {
     if (-not $candidate) { return $null }
-    # The root WindowsApps aliases can be Store download stubs. Package-specific
-    # aliases and installed Store interpreters must not be rejected by their path.
-    $etaAliasRoot = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
-    if ((Split-Path -Parent $candidate).TrimEnd('\') -ieq $etaAliasRoot.TrimEnd('\')) {
-        if (-not @(Get-EtaStorePackages).Count) { return $null }
-    }
+    # Probe aliases with arguments, even if Appx enumeration is unavailable.
+    # Microsoft's download stub returns an error with arguments; it is not Python.
     $etaProbe = $null
     try {
         $etaInfo = New-Object System.Diagnostics.ProcessStartInfo
         $etaInfo.FileName = $candidate
-        $etaInfo.Arguments = (($prefix -join ' ') + ' -I -c "import sys,json;print(json.dumps(dict(executable=sys.executable,supported=(3,10)<=sys.version_info[:2]<(3,14))))"').Trim()
+        $etaInfo.Arguments = (($prefix -join ' ') + ' -I -c "import sys,json;print(json.dumps(dict(executable=sys.executable,version=sys.version.split()[0],supported=(3,10)<=sys.version_info[:2]<(3,14))))"').Trim()
         $etaInfo.UseShellExecute = $false
         $etaInfo.CreateNoWindow = $true
         $etaInfo.RedirectStandardOutput = $true
@@ -35,13 +37,16 @@ function Get-EtaPython([string]$candidate, [string[]]$prefix = @()) {
         $etaProbe = [System.Diagnostics.Process]::Start($etaInfo)
         $etaOutput = $etaProbe.StandardOutput.ReadToEndAsync()
         $etaErrors = $etaProbe.StandardError.ReadToEndAsync()
-        if (-not $etaProbe.WaitForExit(8000)) { $etaProbe.Kill(); $etaProbe.WaitForExit(); return $null }
-        if ($etaProbe.ExitCode -ne 0) { return $null }
+        if (-not $etaProbe.WaitForExit(8000)) { $etaProbe.Kill(); $etaProbe.WaitForExit(); Add-EtaPythonDiagnostic $candidate '8 saniyede yanit vermedi'; return $null }
+        if ($etaProbe.ExitCode -ne 0) { Add-EtaPythonDiagnostic $candidate ('Cikis kodu ' + $etaProbe.ExitCode + ': ' + $etaErrors.Result); return $null }
         $etaDetails = $etaOutput.Result | ConvertFrom-Json
         if ($etaDetails.supported -eq $true -and $etaDetails.executable -is [string] -and $etaDetails.executable.Trim()) {
+            Add-EtaPythonDiagnostic $candidate ('Uygun Python ' + $etaDetails.version)
+            if (-not $prefix.Count) { return $candidate }
             return $etaDetails.executable.Trim()
         }
-    } catch { }
+        Add-EtaPythonDiagnostic $candidate ('Desteklenmeyen surum: ' + $etaDetails.version + '. Gerekli: 3.10-3.13')
+    } catch { Add-EtaPythonDiagnostic $candidate $_.Exception.Message }
     finally { if ($etaProbe) { $etaProbe.Dispose() } }
     return $null
 }
@@ -50,7 +55,7 @@ function Find-EtaPython([string]$explicitPath) {
     $etaFound = Get-EtaPython $explicitPath
     if ($etaFound) { return $etaFound }
     # Try all PATH matches, including version-specific Store aliases.
-    $etaNames = @('python.exe', 'python3.exe', 'python3.12.exe', 'python3.13.exe', 'python3.11.exe', 'python3.10.exe')
+    $etaNames = @('python.exe', 'python3.exe', 'python3.12.exe', 'python3.13.exe', 'python3.11.exe', 'python3.10.exe', 'python3.14.exe', 'python3.15.exe')
     foreach ($etaCommand in @(Get-Command -Name $etaNames -All -CommandType Application -ErrorAction SilentlyContinue)) {
         $etaFound = Get-EtaPython $etaCommand.Source
         if ($etaFound) { return $etaFound }
@@ -60,12 +65,20 @@ function Find-EtaPython([string]$explicitPath) {
             $etaFound = Get-EtaPython $etaLauncher.Source @($etaVersion)
             if ($etaFound) { return $etaFound }
         }
+        $etaFound = Get-EtaPython $etaLauncher.Source
+        if ($etaFound) { return $etaFound }
     }
     $etaCandidates = @()
+    foreach ($etaName in $etaNames) {
+        $etaCandidates += Join-Path (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps') $etaName
+        $etaCandidates += Join-Path (Join-Path $env:LOCALAPPDATA 'Python\bin') $etaName
+    }
     $etaPythonDirectory = Join-Path $env:LOCALAPPDATA 'Programs\Python'
     if (Test-Path -LiteralPath $etaPythonDirectory) {
         $etaCandidates += @(Get-ChildItem -Path (Join-Path $etaPythonDirectory 'Python*\python.exe') -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
     }
+    $etaPackageAliases = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\PythonSoftwareFoundation.Python*\python*.exe'
+    $etaCandidates += @(Get-ChildItem -Path $etaPackageAliases -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
     foreach ($etaPackage in @(Get-EtaStorePackages)) {
         # Package aliases also work when WindowsApps is missing from PATH.
         foreach ($etaName in $etaNames) {
@@ -82,12 +95,24 @@ function Find-EtaPython([string]$explicitPath) {
     return $null
 }
 
+if ($PythonTani) {
+    $etaDiagnosticPython = Find-EtaPython $PythonExe
+    $script:etaPythonDiagnostics | ForEach-Object { Write-Host $_ }
+    if ($etaDiagnosticPython) { Write-Host ('Secilen Python: ' + $etaDiagnosticPython) }
+    else { Write-Host 'Uygun Python bulunamadi. Yukaridaki tani ciktisini destek icin paylasin.' }
+    return
+}
+if (-not (Test-Path -LiteralPath (Join-Path $etaProjectRoot 'kurum\EtaControl_KurumPaketi.zip'))) { throw 'Kurum paketi eksik. EtaControl_KurumPaketi.zip dosyasini kurum klasorune koyun.' }
+
 $etaVenvRoot = Join-Path $etaProjectRoot '.venv'
 $etaVenvExe = Join-Path $etaVenvRoot 'Scripts\python.exe'
 $etaPython = Get-EtaPython $etaVenvExe
 if (-not $etaPython) {
     $etaPython = Find-EtaPython $PythonExe
-    if (-not $etaPython) { throw 'Python 3.10-3.13 bulunamadi. Store Python kuruluysa Uygulama yurutme diger adlari ayarini kontrol edin veya -PythonExe ile yol belirtin. Python 3.14 ve ustu bu surumde desteklenmiyor.' }
+    if (-not $etaPython) {
+        $script:etaPythonDiagnostics | ForEach-Object { Write-Host $_ }
+        throw 'Python 3.10-3.13 bulunamadi. Tani icin KURULUM.ps1 -PythonTani calistirin. Python 3.14 ve ustu bu surumde desteklenmiyor.'
+    }
     if (Test-Path -LiteralPath $etaVenvRoot) {
         $etaResolvedVenv = [System.IO.Path]::GetFullPath($etaVenvRoot)
         if ($etaResolvedVenv -ne (Join-Path $etaProjectRoot '.venv') -or ((Get-Item -LiteralPath $etaVenvRoot -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {

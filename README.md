@@ -63,6 +63,12 @@ Kurulum; mevcut sanal ortamı, PATH üzerindeki `python` / `python3` / sürüml�
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\KURULUM.ps1 -PythonExe "D:\Python312\python.exe"
 ```
 
+Python keşfi başarısız olursa sürüm, erişim ve çalıştırma hatalarını görmek için aşağıdaki salt okunur komutu kullanın. Kurum paketi gerektirmez; kurulum yapmaz:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\KURULUM.ps1 -PythonTani
+```
+
 ## Güncelleme
 
 Kurum paketi yerinde kalır. Uygulamayı kapatıp çalıştırın:

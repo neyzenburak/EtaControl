@@ -28,10 +28,20 @@ try {
     $etaDiscovered = Find-EtaPython ''
     Assert-Eta ($etaDiscovered -ieq $etaStorePython) 'PATH disindaki kayitli Store paketi bulunamadi.'
     Remove-Item Function:\Get-Command
-    # An unregistered root alias must not be launched: it may open the Store.
+    # Regression: a working root alias must not depend on Appx enumeration or PATH.
     $script:etaStorePackages = @()
-    $etaStub = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\python.exe'
-    Assert-Eta (-not (Get-EtaPython $etaStub)) 'Kurulu paket olmadan Store yonlendirmesi kabul edildi.'
+    $etaAliasRoot = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
+    New-Item -ItemType Directory -Force -Path $etaAliasRoot | Out-Null
+    $etaAlias = Join-Path $etaAliasRoot 'python.exe'
+    Copy-Item -LiteralPath $etaStorePython -Destination $etaAlias
+    Copy-Item -LiteralPath (Join-Path $etaTestVenv 'pyvenv.cfg') -Destination $etaAliasRoot
+    Assert-Eta ([bool](Get-EtaPython $etaAlias)) 'Appx listesi bosken calisan kok alias reddedildi.'
+    function Get-Command { param($Name, [switch]$All, $CommandType, $ErrorAction) return $null }
+    Assert-Eta ((Find-EtaPython '') -ieq $etaAlias) 'PATH ve Appx olmadan WindowsApps alias bulunamadi.'
+    Remove-Item Function:\Get-Command
+    $etaStub = Join-Path $etaAliasRoot 'python3.exe'
+    Assert-Eta (-not (Get-EtaPython $etaStub)) 'Olmayan alias kabul edildi.'
+    Assert-Eta ([bool]($script:etaPythonDiagnostics | Where-Object { $_ -like '*python3.exe*' })) 'Basarisiz aday taniya eklenmedi.'
     Write-Host 'Python kesfi: gercek yorumlayici, WindowsApps yolu, PATH disi Store kaydi ve bos alias kontrolleri gecti.'
 } finally {
     if (Test-Path Function:\Get-Command) { Remove-Item Function:\Get-Command }
