@@ -10,7 +10,7 @@ Gereksinimler:
 
 - Windows ve PowerShell 5.1 veya üzeri.
 - Python 3.10–3.14 (python.org veya Microsoft Store kurulumu). Python 3.15 ve üzeri bu sürümde desteklenmez.
-- Python 3.14.8, proje altında ayrı bir yorumlayıcıyla yerel olarak doğrulandı: altyapı ve kurum testleri, iki Excel çıktı yolu, HTTP indirme, tarayıcı akışı ve PCOMM üzerinden salt okunur ekran erişimi geçti. Canlı terminale güncelleme gönderilmedi. GitHub doğrulaması Windows üzerinde 3.12, 3.13 ve 3.14 sürümlerini kapsar.
+- Python 3.14.8, proje altında ayrı bir yorumlayıcıyla yerel olarak doğrulandı: altyapı ve kurum testleri, iki Excel çıktı yolu, HTTP indirme, tarayıcı akışı ve terminal üzerinden salt okunur ekran erişimi geçti. Canlı terminale güncelleme gönderilmedi. GitHub doğrulaması Windows üzerinde 3.12, 3.13 ve 3.14 sürümlerini kapsar.
 - Python bağımlılıklarını indirmek için internet veya kurumsal paket deposu erişimi.
 - Yetkili kişiden alınan `EtaControl_KurumPaketi.zip` dosyası.
 - Canlı terminal bağlantısı kullanılacaksa kurumun terminal istemcisi ve gerekli oturum yetkisi.
