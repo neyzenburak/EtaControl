@@ -9,16 +9,22 @@ jobs:
   ortak-altyapi:
     name: Ortak altyapı testleri
     runs-on: windows-latest
+    strategy:
+      matrix:
+        python: ['3.12', '3.13']
     steps:
       - name: Kaynak kodunu al
         uses: actions/checkout@v6
       - name: Python ortamını hazırla
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python }}
       - name: Bağımlılıkları kur
         run: python -m pip install -r requirements-dev.txt
       - name: Yayın kapsamını denetle
         run: python scripts/yayin_denetimi.py
       - name: Testleri çalıştır
         run: python -m pytest tests -q
+      - name: PowerShell Python keşfini doğrula
+        shell: powershell
+        run: .\tests\python_bulma.ps1 -PythonExe (Get-Command python.exe).Source

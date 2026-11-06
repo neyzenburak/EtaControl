@@ -9,7 +9,7 @@ Ortak kurulum, güncelleme, kayıt saklama, dosya üretimi ve paket doğrulama k
 Gereksinimler:
 
 - Windows ve PowerShell 5.1 veya üzeri.
-- Python 3.10–3.13; test edilen sürüm 3.12.
+- Python 3.10–3.13 (python.org veya Microsoft Store kurulumu). Python 3.14 ve üzeri bu sürümde desteklenmez.
 - Python bağımlılıklarını indirmek için internet veya kurumsal paket deposu erişimi.
 - Yetkili kişiden alınan `EtaControl_KurumPaketi.zip` dosyası.
 - Canlı terminal bağlantısı kullanılacaksa kurumun terminal istemcisi ve gerekli oturum yetkisi.
@@ -56,6 +56,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\KURULUM.ps1 -NoStart
 ```
 
 Python otomatik bulunamazsa:
+
+Kurulum; mevcut sanal ortamı, PATH üzerindeki `python` / `python3` / sürümlü komutları, `py` başlatıcısını ve kullanıcıya kayıtlı Microsoft Store Python paketlerini kontrol eder. `WindowsApps` yolu tek başına ret nedeni değildir: bulunan yorumlayıcının gerçekten çalışması ve sürümünün uygun olması gerekir. Yalnız Store indirme sayfasını açan boş takma adlar Python kurulumu sayılmaz. Store kurulumu görünmüyorsa Windows **Uygulama yürütme diğer adları** ayarından Python paketinin takma adlarını kontrol edin.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\KURULUM.ps1 -PythonExe "D:\Python312\python.exe"
