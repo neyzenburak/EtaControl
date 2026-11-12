@@ -86,6 +86,14 @@ Ortak altyapı değişiklikleri GitHub'dan gelir. Kuruma özel işleyiş veya ta
 
 ## Mimari
 
+### Liste yapıştırma
+
+Master data ekranında **Liste yapıştır** düğmesi, Excel'den kopyalanmış iki sütunu veya `GSDB - Sorumlu` biçimindeki satırları kabul eder. Önce tesis kapsamı seçilir ve önizleme oluşturulur. Eski/yeni sorumlu, yeni kayıtlar, aynı kalanlar ve hatalı satırlar birlikte gösterilir. Çelişkili veya hatalı satır varsa toplu kayıt yapılmaz. Aynı GSDB farklı tesislerde bulunuyorsa her hedef ayrı gösterilir; yeni kayıt için tesis seçmek zorunludur.
+
+Kaydetme sırasında önizleme metni ve master data sürümü tekrar kontrol edilir. Mevcut veri toplama seçimleri ve listede yer almayan kayıtlar korunur. Sorumlu değişiklikleri kayıtlarla aynı işlemde yazılır; ham kaynaklar değiştirilmez. Genel motor ve arayüz bu depodadır. Kurum paketi, izin verilen tesisleri ve kurumun veri alanını ortak motora bağlar. Bu bağlantıyı kullanan sürüme geçerken önce ortak kaynakları güncelleyin, sonra yeni kurum ZIP'ini yerleştirip kurulumu çalıştırın. Mevcut kişi listesi veya gerçek kurum kodları repoya dahil değildir.
+
+### Bileşenler
+
 ```text
 Ortak kaynak kodu                    Yerel kurum alanı
 ----------------                    ----------------
@@ -107,6 +115,8 @@ etacontrol/reports.py   <------ rapor projeksiyonları
 | `etacontrol/processes.py` | Kayıtlı süreç kimliği, başlangıç zamanı ve çalıştırılan dosyanın kurulum köküne ait olduğunu denetler. Aktif terminal işi varsa sunucuyu durdurmaz. |
 | `etacontrol/storage.py` | SQLite bağlantıları, çalışma/kayıt ayrımı, atomik içe aktarma, iş durumları, planlar ve olay günlüğü için ortak saklama katmanı. |
 | `etacontrol/reports.py` | Kurumdan bağımsız tablo oluşturma, metin kimliklerini koruma, tarih biçimleri, filtreler, sabit başlıklar ve atomik XLSX kaydı. |
+| `etacontrol/master_data.py` | GSDB–sorumlu metnini ayrıştırma, tesis bazında önizleme, çelişkili satırları engelleme, atomik kayıt ve değişiklik geçmişi. Tesisler ve kurumun veri toplama alan adı bağdaştırıcıdan alınır. |
+| `etacontrol/assets/master-data.js`, `master-data.css` | Genel master data ekranı ve liste yapıştırma arayüzü. Ekran etiketi ve veri toplama alan adı çalışma anında kurum paketinden gelir; kaynak kodda sabit kurum eşlemesi bulunmaz. |
 | `etacontrol/__main__.py` | Kurum çalışma zamanını uygun yerel veri dizini ve modül arama yolu ile başlatır. |
 | Kurum paketi | Terminal bağdaştırıcısı, alan tanımları, veri toplama/öneri akışları ve kuruma özel arayüz. Bu içerik public değildir. |
 
